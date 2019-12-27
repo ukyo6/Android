@@ -81,7 +81,8 @@ public interface IWebviewCallback {
     void onPageStart();
     boolean shouldOverrideUrlLoading(WebView webView, String url);
     WebResourceResponse shouldInterceptRequest(WebView view, final WebResourceRequest webResourceRequest);
-    boolean onShowFileChooser(ValueCallback<Uri[]> filePathCallback,WebChromeClient.FileChooserParamsfileChooserParams);
+    boolean onShowFileChooser(ValueCallback<Uri[]> filePathCallback,
+                              WebChromeClient.FileChooserParams fileChooserParams);
     void onLoadResource(WebView webView, String url);
     ......
 }
