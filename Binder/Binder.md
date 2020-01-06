@@ -509,8 +509,6 @@ public interface IActivityManager extends IInterface {
 
 其次，实现ActivityManagerService侧的本地Binder对象基类：
 
-
-
 ```java
 // 名称随意，不一致叫Stub
 public abstract class ActivityManagerNative extends Binder implements IActivityManager {
@@ -555,8 +553,6 @@ public abstract class ActivityManagerNative extends Binder implements IActivityM
 
 再次，实现Client侧的代理对象：
 
-
-
 ```java
 public class ActivityManagerProxy implements IActivityManager {
     private IBinder mRemote;
@@ -593,8 +589,6 @@ public class ActivityManagerProxy implements IActivityManager {
 ```
 
 最后，实现Binder本地对象（IActivityManager接口）：
-
-
 
 ```java
 public class ActivityManagerService extends ActivityManagerNative {

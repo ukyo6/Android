@@ -31,8 +31,7 @@ final void handleResumeActivity(IBinder token, boolean clearHide, boolean isForw
             // 得到DecorView
             View decor = r.window.getDecorView();
             decor.setVisibility(View.INVISIBLE);
-            // 得到了WindowManager，WindowManager是一个接口
-            // 并且继承了接口ViewManager
+            // 得到了WindowManager，WindowManager是一个接口, 继承了接口ViewManager
             ViewManager wm = a.getWindowManager();
             WindowManager.LayoutParams l = r.window.getAttributes();
             a.mDecor = decor;
@@ -64,7 +63,7 @@ public final class WindowManagerImpl implements WindowManager {
 在了解View绘制的整体流程之前，我们必须先了解下ViewRoot和DecorView的概念。ViewRoot对应于ViewRootImpl类，它是连接WindowManager和DecorView的纽带，View的三大流程均是通过ViewRoot来完成的。在ActivityThread中，当Activity对象被创建完毕后，会将DecorView添加到Window中，同时会创建ViewRootImpl对象，并将ViewRootImpl对象和DecorView建立关联，相关源码如下所示：
 
 ```java
-// WindowManagerGlobal的addView方法
+// WindowManagerGlobal的addView()方法
 public void addView(View view, ViewGroup.LayoutParams params, Display display, Window parentWindow) {
     ...
     ViewRootImpl root;
@@ -95,7 +94,7 @@ public void addView(View view, ViewGroup.LayoutParams params, Display display, W
 
 ### 二、了解绘制的整体流程
 
-绘制会从根视图ViewRoot的performTraversals()方法开始，从上到下遍历整个视图树，每个View控件负责绘制自己，而ViewGroup还需要负责通知自己的子View进行绘制操作。performTraversals()的核心代码如下。
+绘制会从根视图ViewRoot的`performTraversals()`方法开始，从上到下遍历整个视图树，每个View控件负责绘制自己，而ViewGroup还需要负责通知自己的子View进行绘制操作。`performTraversals()`的核心代码如下。
 
 ```java
 private void performTraversals() {
@@ -122,7 +121,7 @@ performTraversals的大致工作流程图如下所示：
 
 注意：
 
-- preformLayout和performDraw的传递流程和performMeasure是类似的，唯一不同的是，performDraw的传递过程是在draw方法中通过dispatchDraw来实现的，不过这并没有本质区别。
+- `preformLayout`和`performDraw`的传递流程和`performMeasure`是类似的，唯一不同的是，`performDraw`的传递过程是在draw方法中通过dispatchDraw来实现的，不过这并没有本质区别。
 - 获取content：
 
 ```java
@@ -336,7 +335,7 @@ public static int getChildMeasureSpec(int spec, int padding, int childDimesion) 
 
 ##### 1.Measure的基本流程
 
-由前面的分析可知，页面的测量流程是从performMeasure方法开始的，相关的核心代码流程如下。
+由前面的分析可知，页面的测量流程是从`performMeasure`方法开始的，相关的核心代码流程如下。
 
 ```java
 private void perormMeasure(int childWidthMeasureSpec, int childHeightMeasureSpec) {
@@ -345,6 +344,8 @@ private void perormMeasure(int childWidthMeasureSpec, int childHeightMeasureSpec
     mView.measure(childWidthMeasureSpec, childHeightMeasureSpec);
     ...
 }
+
+//ViewGroup------------------------------------------------------------------------------------------------
 
 // 在ViewGroup中的measureChildren()方法中遍历测量ViewGroup中所有的View
 protected void measureChildren(int widthMeasureSpec, int heightMeasureSpec) {
@@ -369,6 +370,8 @@ protected void measureChild(View child, int parentWidthMeasureSpec, int parentHe
     final int childHeightMeasureSpec = getChildMeasureSpec(parentHeightMeasureSpec, mPaddingTop + mPaddingBottom, lp.height);
     child.measure(childWidthMeasureSpec, childHeightMeasureSpec);
 }
+
+//View--------------------------------------------------------------------------------------------------------
 
 // View的measure方法
 public final void measure(int widthMeasureSpec, int heightMeasureSpec) {
