@@ -6,7 +6,7 @@
 
 [Maven](http://maven.apache.org/)是一个软件项目管理和自动构建工具，配合使用[android-maven-plugin](https://code.google.com/p/maven-android-plugin/wiki/GettingStarted)插件，以及[maven-resources-plugin](http://maven.apache.org/plugins/maven-resources-plugin/)插件可以很方便的生成渠道包，下面简要介绍下打包过程，更多Maven以及插件的使用方法请参考相关文档。
 
-首先，在`AndroidManifest.xml`的``节点中添加如下``元素，用来定义渠道的来源：
+首先，在`AndroidManifest.xml`的`节点中添加如下`元素，用来定义渠道的来源：
 
 ```xml
 <!-- 使用Maven打包时会用具体的渠道号替换掉${channel} -->

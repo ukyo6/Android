@@ -39,8 +39,7 @@ final void handleResumeActivity(IBinder token, boolean clearHide, boolean isForw
             l.softInputMode |= forwardBit;
             if (a.mVisibleFromClient) {
                 a.mWindowAdded = true;
-                // WindowManager的实现类是WindowManagerImpl，
-                // 所以实际调用的是WindowManagerImpl的addView方法
+                // decorView添加到window中
                 wm.addView(decor, l);
             }
         }
@@ -54,13 +53,13 @@ public final class WindowManagerImpl implements WindowManager {
     @Override
     public void addView(@NonNull View view, @NonNull ViewGroup.LayoutParams params) {
         applyDefaultToken(params);
-        mGlobal.addView(view, params, mDisplay, mParentWindow);
+        mGlobal.addView(view, params, mDisplay, mParentWindow); //桥接模式
     }
     ...
 }
 ```
 
-在了解View绘制的整体流程之前，我们必须先了解下ViewRoot和DecorView的概念。ViewRoot对应于ViewRootImpl类，它是连接WindowManager和DecorView的纽带，View的三大流程均是通过ViewRoot来完成的。在ActivityThread中，当Activity对象被创建完毕后，会将DecorView添加到Window中，同时会创建ViewRootImpl对象，并将ViewRootImpl对象和DecorView建立关联，相关源码如下所示：
+在了解View绘制的整体流程之前，我们必须先了解下ViewRoot和DecorView的概念。ViewRoot对应于ViewRootImpl类，它是连接WindowManager和DecorView的纽带，View的三大流程均是通过ViewRoot来完成的。在ActivityThread中，当Activity对象被创建完毕后，会**将DecorView添加到Window中**，同时会创建ViewRootImpl对象，并**将ViewRootImpl对象和DecorView建立关联**，相关源码如下所示：
 
 ```java
 // WindowManagerGlobal的addView()方法
@@ -78,7 +77,7 @@ public void addView(View view, ViewGroup.LayoutParams params, Display display, W
         mParams.add(wparams);
     }
     try {
-        // 把DecorView加载到Window中
+        // ViewR
         root.setView(view, wparams, panelParentView);
     } catch (RuntimeException e) {
         synchronized (mLock) {
@@ -648,8 +647,7 @@ void layoutVertical(int left, int top, int right, int bottom) {
             childTop += lp.topMargin;
             // 为子元素确定对应的位置
             setChildFrame(child, childLeft, childTop + getLocationOffset(child), childWidth, childHeight);
-            // childTop会逐渐增大，意味着后面的子元素会被
-            // 放置在靠下的位置
+            // childTop会逐渐增大，意味着后面的子元素会被放置在靠下的位置
             childTop += childHeight + lp.bottomMargin + getNextLocationOffset(child);
 
             i += getChildrenSkipCount(child,i)

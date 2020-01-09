@@ -74,15 +74,15 @@ public static EventBus getDefault() {
             }
         }
         return defaultInstance;
-    }
+}
 ```
 
 继续看`new EventBus()`做了些什么：
 
 ```java
 public EventBus() {
-        this(DEFAULT_BUILDER);
-    }
+    this(DEFAULT_BUILDER);
+}
 ```
 
 在这里又调用了`EventBus`的另一个构造函数来完成它相关属性的初始化：
@@ -121,7 +121,7 @@ private static final EventBusBuilder DEFAULT_BUILDER = new EventBusBuilder();
 ```java
 EventBus.builder()
         .eventInheritance(false)
-        .logSubscriberExceptions(false)
+        .logSubscriberExceptions(false) //打印错误日志
         .build()
         .register(this);
 ```
@@ -132,17 +132,16 @@ EventBus.builder()
 public void register(Object subscriber) {
         // 得到当前要注册类的Class对象
         Class<?> subscriberClass = subscriber.getClass();
-        // 1.根据Class查找当前类中订阅了事件的方法集合，即使用了Subscribe注解、有public修饰符、一个参数的方法
-        // SubscriberMethod类主要封装了符合条件方法的相关信息：
-        // Method对象、线程模式、事件类型、优先级、是否是粘性事等
+        // 1.根据Class查找当前类中订阅了事件的方法集合 (使用了Subscribe注解、public修饰符、一个参数的方法)
+        // SubscriberMethod类主要封装了符合条件方法的相关信息： Method对象、线程模式、事件类型、优先级、是否是粘性事件
         List<SubscriberMethod> subscriberMethods = subscriberMethodFinder.findSubscriberMethods(subscriberClass);
         synchronized (this) {
-            // 2.循环遍历订阅了事件的方法集合，以完成注册
+            // 2.遍历列表, 注册订阅
             for (SubscriberMethod subscriberMethod : subscriberMethods) {
                 subscribe(subscriber, subscriberMethod);
             }
         }
-    }
+}
 ```
 
 #### 1. 查找订阅方法 `findSubscriberMethods()`
@@ -153,33 +152,33 @@ public void register(Object subscriber) {
 private static final Map<Class<?>, List<SubscriberMethod>> METHOD_CACHE = new ConcurrentHashMap<>();
 
 List<SubscriberMethod> findSubscriberMethods(Class<?> subscriberClass) {
-        // METHOD_CACHE是一个ConcurrentHashMap，直接保存了subscriberClass和对应SubscriberMethod的集合，以提高注册效率，防止重复查找
+        // METHOD_CACHE是一个ConcurrentHashMap, 保存了每个类的订阅方法集合<class, List<SubscriberMethod>> 
         List<SubscriberMethod> subscriberMethods = METHOD_CACHE.get(subscriberClass);
         if (subscriberMethods != null) {
             return subscriberMethods;
         }
-        // 由于使用了默认的EventBusBuilder，则ignoreGeneratedIndex属性默认为false，不忽略注解生成器
+        // 默认false, 不忽略apt注解生成的订阅方法集合
         if (ignoreGeneratedIndex) {
-            subscriberMethods = findUsingReflection(subscriberClass);
+            subscriberMethods = findUsingReflection(subscriberClass); //true只使用反射查找订阅方法集合
         } else {
             subscriberMethods = findUsingInfo(subscriberClass);
         }
-        // 如果对应类中没有符合条件的方法，则抛出异常
+        // 如果注册类中的订阅方法数量=0 , 就抛出异常
         if (subscriberMethods.isEmpty()) {
             throw new EventBusException("Subscriber " + subscriberClass
                     + " and its super classes have no public methods with the @Subscribe annotation");
         } else {
-            // 保存查找到的订阅事件的方法
+            // 保存 订阅方法列表 到Map中
             METHOD_CACHE.put(subscriberClass, subscriberMethods);
             return subscriberMethods;
         }
-    }
+ }
 ```
 
 `findSubscriberMethods()`流程很清晰，即先从缓存中查找，如果找到则直接返回，否则去做下一步的查找过程，然后缓存查找到的集合，根据上边的注释可知`findUsingInfo()`方法会被调用：
 
 ```java
-private List<SubscriberMethod> findUsingInfo(Class<?> subscriberClass) {
+	private List<SubscriberMethod> findUsingInfo(Class<?> subscriberClass) {
         FindState findState = prepareFindState();
         findState.initForSubscriber(subscriberClass);
         // 初始状态下findState.clazz就是subscriberClass
@@ -194,20 +193,18 @@ private List<SubscriberMethod> findUsingInfo(Class<?> subscriberClass) {
                     }
                 }
             } else {
-                // 没有apt生成的信息, 就反射查找订阅方法
+                // 没有apt生成的, 就反射查找订阅方法
                 findUsingReflectionInSingleClass(findState);
             }
             // 修改findState.clazz为subscriberClass的父类Class，即需要遍历父类
             findState.moveToSuperclass();
         }
-        // 查找到的方法保存在了FindState实例的subscriberMethods集合中。
-        // 使用subscriberMethods构建一个新的List<SubscriberMethod>
-        // 释放掉findState
+        // 查找到的方法列表保存在FindState.subscriberMethods属性中, 从findState对象中获得subscriberMethods,然后释放findState对象
         return getMethodsAndRelease(findState);
     }
 ```
 
-`findUsingInfo()`方法会在当前要注册的类以及其父类中查找订阅事件的方法，这里出现了一个`FindState`类，它是`SubscriberMethodFinder`的内部类，用来辅助查找订阅事件的方法，具体的查找过程在`findUsingReflectionInSingleClass()`方法，它主要通过反射查找订阅事件的方法：
+`findUsingInfo()`方法会在当前要注册的类以及其父类中查找订阅事件的方法，这里出现了一个`FindState`类，它是`SubscriberMethodFinder`的内部类，用来辅助查找订阅事件的方法，具体的查找过程在`findUsingReflectionInSingleClass(findState)`方法，它主要通过反射查找订阅事件的方法：
 
 ```java
 private void findUsingReflectionInSingleClass(FindState findState) {
@@ -237,7 +234,7 @@ private void findUsingReflectionInSingleClass(FindState findState) {
                     if (subscribeAnnotation != null) {
                         // 得到该参数的类型
                         Class<?> eventType = parameterTypes[0];
-                        // checkAdd()方法用来判断FindState的anyMethodByEventType map是否已经添加过以当前eventType为key的键值对，没添加过则返回true
+                        // checkAdd()判断是否已经添加过这个方法
                         if (findState.checkAdd(method, eventType)) {
                              // 得到Subscribe注解的threadMode属性值，即线程模式
                             ThreadMode threadMode = subscribeAnnotation.threadMode();
@@ -265,15 +262,20 @@ private void findUsingReflectionInSingleClass(FindState findState) {
 #### 2. 注册订阅 `subscribe(subscriberClass, subscriberMethods)`
 
 ```java
- private void subscribe(Object subscriber, SubscriberMethod subscriberMethod) {
-        // 得到当前订阅了事件的方法的参数类型
+//EventType为key, 订阅者列表为value
+private final Map<Class<?>, CopyOnWriteArrayList<Subscription>> subscriptionsByEventType;
+
+//类名为key, EventType列表为value
+private final Map<Object, List<Class<?>>> typesBySubscriber;
+
+private void subscribe(Object subscriber, SubscriberMethod subscriberMethod) {  //订阅类, 订阅方法(优先级,方法,线程模式,粘性,事件类型)
+        // 事件类型
         Class<?> eventType = subscriberMethod.eventType;
-        // Subscription类保存了要注册的类对象以及当前的subscriberMethod
+        // 用订阅类, 订阅方法创建一个订阅者Subscription 
         Subscription newSubscription = new Subscription(subscriber, subscriberMethod);
-        // subscriptionsByEventType是hashMap
-        // key = eventType, value = CopyOnWriteArrayList<Subscription>>
+        //1.查找指定EventType的订阅者列表
         CopyOnWriteArrayList<Subscription> subscriptions = subscriptionsByEventType.get(eventType);
-        // 如果不存在，则创建一个subscriptions，并保存到subscriptionsByEventType
+        //不存在就创建
         if (subscriptions == null) {
             subscriptions = new CopyOnWriteArrayList<>();
             subscriptionsByEventType.put(eventType, subscriptions);
@@ -283,26 +285,25 @@ private void findUsingReflectionInSingleClass(FindState findState) {
                         + eventType);
             }
         }
-        // 添加上边创建的newSubscription对象到subscriptions集合中
+
         int size = subscriptions.size();
         for (int i = 0; i <= size; i++) {
-            //插入的时候, 根据注解里设置的prority排序!!!!!!!!!!!!
+            //插入列表的时候根据注解里设置的prority排序!!!!!!!!!!!!
             if (i == size || subscriberMethod.priority > subscriptions.get(i).subscriberMethod.priority) {
                 subscriptions.add(i, newSubscription);
                 break;
             }
         }
-        // typesBySubscribere也是一个HashMap，保存了以当前要注册类的对象为key，注册类中订阅事件的方法的参数类型的集合为value的键值对
-        // 查找是否存在对应的参数类型集合
+  
+      	//2.查找并保存当前类中所有的EventType
         List<Class<?>> subscribedEvents = typesBySubscriber.get(subscriber);
         // 不存在则创建一个subscribedEvents，并保存到typesBySubscriber
         if (subscribedEvents == null) {
             subscribedEvents = new ArrayList<>();
             typesBySubscriber.put(subscriber, subscribedEvents);
         }
-        // 保存当前订阅了事件的方法的参数类型
         subscribedEvents.add(eventType);
-        // 粘性事件相关的，后边具体分析
+        // 3.粘性事件相关的，后边具体分析
         if (subscriberMethod.sticky) {
             if (eventInheritance) {
                 // Existing sticky events of all subclasses of eventType have to be considered.
@@ -338,7 +339,7 @@ EventBus.getDefault().unregister(this);
 核心的方法就是`unregister()`：
 
 ```java
-public synchronized void unregister(Object subscriber) {
+	public synchronized void unregister(Object subscriber) {
         // 得到当前注册类对象 对应的 订阅事件方法的参数类型 的集合
         List<Class<?>> subscribedTypes = typesBySubscriber.get(subscriber);
         if (subscribedTypes != null) {
@@ -497,8 +498,9 @@ private boolean postSingleEventForEventType(Object event, PostingThreadState pos
 private void postToSubscription(Subscription subscription, Object event, boolean isMainThread) {
         // 判断订阅事件方法的线程模式
         switch (subscription.subscriberMethod.threadMode) {
-            // 默认的线程模式，在那个线程发送事件就在那个线程处理事件
+            // 默认的线程模式
             case POSTING:
+                //当前线程发送,当前线程反射处理事件
                 invokeSubscriber(subscription, event);
                 break;
             // 在主线程处理事件
@@ -508,12 +510,10 @@ private void postToSubscription(Subscription subscription, Object event, boolean
                     invokeSubscriber(subscription, event);
                 } else {
                     // 如果是在子线程发送事件，则将事件入队列，通过Handler切换到主线程执行处理事件
-                    // mainThreadPoster 不为空
                     mainThreadPoster.enqueue(subscription, event);
                 }
                 break;
             // 无论在那个线程发送事件，都先将事件入队列，然后通过 Handler 切换到主线程，依次处理事件。
-            // mainThreadPoster 不为空
             case MAIN_ORDERED:
                 if (mainThreadPoster != null) {
                     mainThreadPoster.enqueue(subscription, event);
@@ -522,8 +522,8 @@ private void postToSubscription(Subscription subscription, Object event, boolean
                 }
                 break;
             case BACKGROUND:
-                // 如果在主线程发送事件，则先将事件入队列，然后通过线程池依次处理事件
                 if (isMainThread) {
+                    // 如果在主线程发送事件，则先将事件入队列，然后通过线程池依次处理事件
                     backgroundPoster.enqueue(subscription, event);
                 } else {
                     // 如果在子线程发送事件，则直接在发送事件的线程通过反射处理事件
@@ -615,7 +615,7 @@ void invokeSubscriber(PendingPost pendingPost) {
 
 这个方法很简单，主要就是从`pendingPost`中取出之前保存的`event`、`subscription`，然后用反射来执行订阅事件的方法，又回到了第一种处理方式。所以`mainThreadPoster.enqueue(subscription, event)`的核心就是先将将事件入队列，然后通过Handler从子线程切换到主线程中去处理事件。
 
-`backgroundPoster.enqueue()`和`asyncPoster.enqueue`也类似，内部都是先将事件入队列，然后再出队列，但是会通过线程池去进一步处理事件。
+`backgroundPoster.enqueue()`和`asyncPoster.enqueue()`也类似，内部都是先将事件入队列，然后再出队列，但是会通过线程池去进一步处理事件。
 
 ### 六、粘性事件
 
@@ -632,10 +632,10 @@ EventBus.getDefault().postSticky("Hello World!");
 ```java
 public void postSticky(Object event) {
         synchronized (stickyEvents) {
-            stickyEvents.put(event.getClass(), event);
+            stickyEvents.put(event.getClass(), event); //key是event.class, value是event
         }
         post(event);
-    }
+}
 ```
 
 `postSticky()`方法主要做了两件事，先将事件类型和对应事件保存到`stickyEvents`中，方便后续使用；然后执行`post(event)`继续发送事件，这个`post()`方法就是之前发送的`post()`方法。所以，如果在发送粘性事件前，已经有了对应类型事件的订阅者，及时它是非粘性的，依然可以接收到发送出的粘性事件。
@@ -647,7 +647,7 @@ private void subscribe(Object subscriber, SubscriberMethod subscriberMethod) {
         ......
         ......
         ......
-        // 如果当前订阅事件的方法的Subscribe注解的sticky属性为true，即该方法可接受粘性事件
+        // 注解的sticky = true, 处理粘性事件
         if (subscriberMethod.sticky) {
             // 默认为true，表示是否向上查找事件的父类
             if (eventInheritance) {
@@ -674,7 +674,7 @@ private void subscribe(Object subscriber, SubscriberMethod subscriberMethod) {
 可以看到，处理粘性事件就是在 EventBus 注册时，遍历`stickyEvents`，如果当前要注册的事件订阅方法是粘性的，并且该方法接收的事件类型和`stickyEvents`中某个事件类型相同或者是其父类，则取出`stickyEvents`中对应事件类型的具体事件，做进一步处理。继续看`checkPostStickyEventToSubscription()`处理方法：
 
 ```java
-private void checkPostStickyEventToSubscription(Subscription newSubscription, Object stickyEvent) {
+    private void checkPostStickyEventToSubscription(Subscription newSubscription, Object stickyEvent) {
         if (stickyEvent != null) {
             postToSubscription(newSubscription, stickyEvent, isMainThread());
         }

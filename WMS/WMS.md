@@ -43,6 +43,8 @@ view.setLayoutParams(wparams);
 mViews.add(view);
 mRoots.add(root);
 mParams.add(wparams);
+
+root.setView(view, wparams, panelParentView);  //这里的View是decorView
 ```
 
 可以看到，到目前为止，只是把相应的对象存放到`ArrayList`列表中。后面还需要将`View`给显示出来。绘制`View`需要通过`ViewRootImpl`的`setView`方法来实现。在`setView`内部是通过`requestLayout`来完成一部刷新请求的。
@@ -63,14 +65,36 @@ public void requestLayout(){
 
 ## 2 ViewRootImpl内部机制
 
-`ViewRootImpl`用于管理窗口的根`View`，并和`WMS`进行交互。`ViewRootImpl`中有一个内部类： `W`，以及另一个内部类：`ViewRootHandler`。
+`ViewRootImpl`用于管理窗口的`DecorView`，并和`WMS`进行交互。`ViewRootImpl`中有一个内部类： `W`，以及另一个内部类：`ViewRootHandler`。
 
-> - `W`继承自`IWindow.Stub`。是一个`Binder`对象，用于接收`WMS`的各种消息， 如按键消息， 触摸消息等。
+> - `W`继承自[`IWindow.Stub`](https://cs.android.com/android/platform/superproject/+/master:frameworks/base/core/java/android/view/IWindow.aidl;l=1?q=IWindow&sq= ): 是一个`Binder`对象，用于接收`WMS`的各种消息， 如按键消息， 触摸消息等。
 > - `ViewRootHandler`，是`Handler`的子类， `W`会通过`Looper`把消息传递给`ViewRootHandler`。
 
 `ViewRootImpl`有一个`W`类型的成员`mWindow`，`ViewRootImpl`在构造函数中创建一个`W`的实例并赋值给`mWindow`。
 
-在`ViewRootImpl`的`setView`方法（此方法运行在`UI`线程）中，会通过`IPC`的方式跨进程向`WMS`发起一个远程调用，从而将`DecorView`最终添加到`Window`上，在这个过程中，`ViewRootImpl`、`DecorView`和`WMS`会彼此向关联.
+```java
+    public ViewRootImpl(Context context, Display display) {
+            ....
+            mWindow = new W(this);
+    }
+```
+
+在`ViewRootImpl.setView()`方法（此方法运行在`UI`线程）中，会通过`IPC`的方式通过`Session`跨进程向`WMS`发起一个远程调用，从而将`DecorView`最终添加到`Window`上，在这个过程中，`ViewRootImpl`、`DecorView`和`WMS`会彼此向关联.
+
+```java
+    public void setView(View view, WindowManager.LayoutParams attrs, View panelParentView) {
+        synchronized (this) {
+        			   ....
+                        requestLayout();
+                        ....
+                        res = mWindowSession.addToDisplay(mWindow, mSeq, mWindowAttributes,  //session添加window
+                            getHostVisibility(), mDisplay.getDisplayId(), mTmpFrame,
+                            mAttachInfo.mContentInsets, mAttachInfo.mStableInsets,
+                            mAttachInfo.mOutsets, mAttachInfo.mDisplayCutout, mInputChannel,
+                            mTempInsets);
+        }
+     }                   
+```
 
 另外，`WMS`有时也需要向`ViewRootImpl`发送远程请求，比如，点击事件是由用户的触摸行为所产生的，因此它必须要通过硬件来捕获，跟硬件之间的交互自然是Android系统自己把握，Android系统将点击事件交给`WMS`来处理。`WMS`通过远程调用将事件发送给`ViewRootImpl`，在`ViewRootImpl`中，有一个方法，叫做`dispatchInputEvent`，最终将事件传递给`DecorView`。
 
@@ -99,8 +123,6 @@ ViewRootImpl与WmS之间通信
 多个Window情况下对应关系
 
 ## 4 WMS控制窗口的显示
-
-
 
  **以下内容来自老罗的的博客，后面附有资料链接。**
 

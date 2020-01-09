@@ -71,7 +71,7 @@ Binder机制很复杂，想要彻底弄懂比较难，除了需要了解操作�
 
 ### 1.2.2 进程空间：用户空间/内核空间
 
-现在的操作系统都采用虚拟内存，对32位的操作系统而言，寻址空间是2的32次方，即4G。操作系统的核心是内核，内核拥有对底层设备的所有访问权限，因此需要和普通的应用程序独立开来，用户进程不能直接访问内核进程。操作系统从逻辑上把虚拟地址空间划分为用户空间（User Space）和内核空间（Kernel Space）。在32位的Linux操作系统中，将高位的1GB字节供内核使用，称之为内核空间；剩下的3GB字节供用户进程使用，称之为用户空间。
+现在的操作系统都采用虚拟内存，对32位的操作系统而言，寻址空间是2的32次方，即4G。操作系统的核心是内核，内核拥有对底层设备的所有访问权限，因此需要和普通的应用程序独立开来，用户进程不能直接访问内核进程。操作系统从逻辑上把虚拟地址空间划分为**用户空间（User Space）**和**内核空间（Kernel Space）**。在32位的Linux操作系统中，将高位的1GB字节供内核使用，称之为内核空间；剩下的3GB字节供用户进程使用，称之为用户空间。
 
 ### 1.2.3 系统调用：用户态/内核态
 
@@ -85,14 +85,14 @@ Binder机制很复杂，想要彻底弄懂比较难，除了需要了解操作�
 
 > 驱动程序一般指的是设备驱动程序（Device Driver），是一种可以使计算机和设备通信的特殊程序。相当于硬件的接口，操作系统只有通过这个接口。
 
-Binder驱动是一种虚拟的字符设备，注册在/dev/binder中，其定义了一套Binder通信协议，负责建立进程间的Binder通信，提供了数据包在进程之间传递的一系列底层支持。应用进程访问Binder驱动也是通过系统调用实现的。
+**Binder驱动**是一种虚拟的字符设备，注册在`/dev/binder`中，其定义了一套Binder通信协议，负责建立进程间的Binder通信，提供了数据包在进程之间传递的一系列底层支持。应用进程访问Binder驱动也是通过系统调用实现的。
 
 ## 1.3 传统IPC机制的通信原理
 
 了解了上面的基础知识后，我们来看看传统IPC机制是如何实现，通常是下面两个步骤（共享内存机制除外）：
 
-1. 发送方进程通过系统调用（copy_from_user）将要发送的数据存拷贝到内核缓存区中。
-2. 接收方开辟一段内存空间，内核通过系统调用（copy_to_user）将内核缓存区中的数据拷贝到接收方的内存缓存区。
+1. 发送方进程通过系统调用`（copy_from_user）`将要发送的数据存拷贝到内核缓存区中。
+2. 接收方开辟一段内存空间，内核通过系统调用`（copy_to_user）`将内核缓存区中的数据拷贝到接收方的内存缓存区。
 
 ![img](https:////upload-images.jianshu.io/upload_images/2438937-70b88bb796c6fdcd.png?imageMogr2/auto-orient/strip|imageView2/2/w/1200/format/webp)
 
@@ -107,13 +107,11 @@ IPC.png
 
 ## 2.1 Binder底层原理
 
-传统IPC机制需要拷贝2次内存，Binder是如何只用1次内存拷贝就实现进程间通信的呢？前面我们已经了解到，Linux是使用的是虚拟内存寻址方式，用户空间的虚拟内存地址是映射到物理内存中的，对虚拟内存的读写实际上是对物理内存的读写，这个过程就是**内存映射**，**这个内存映射过程是通过系统调用mmap()来实现的。**
+传统IPC机制需要拷贝2次内存，Binder是如何只用1次内存拷贝就实现进程间通信的呢？前面我们已经了解到，**Linux是使用的是虚拟内存寻址方式，用户空间的虚拟内存地址是映射到物理内存中的，对虚拟内存的读写实际上是对物理内存的读写，这个过程就是内存映射，这个内存映射过程是通过系统调用mmap()来实现的。**
 
 Binder借助了内存映射的方法，**在内核空间和接收方用户空间的数据缓存区之间做了一层内存映射**。这样一来，从发送方用户空间拷贝到内核空间缓存区的数据，就相当于直接拷贝到了接收方用户空间的数据缓存区，从而减少了一次数据拷贝。
 
 ![img](https:////upload-images.jianshu.io/upload_images/2438937-6031baa02e0954e3.png?imageMogr2/auto-orient/strip|imageView2/2/w/1200/format/webp)
-
-binder.png
 
 ## 2.2 Binder通信模型
 
@@ -140,17 +138,17 @@ Binder是基于C/S架构的，对于通信双方来说，发起请求的进程�
 - **Binder驱动**：类似网络通信中的路由器，负责将Client的请求转发到具体的Server中执行，并将Server返回的数据传回给Client。
 - **ServiceManager**：类似网络通信中的DNS服务器，负责将Client请求的Binder描述符转化为具体的Server地址，以便Binder驱动能够转发给具体的Server。Server如需提供Binder服务，需要向ServiceManager注册。
 
-![img](https:////upload-images.jianshu.io/upload_images/2438937-520282f1ab817cc0.png?imageMogr2/auto-orient/strip|imageView2/2/w/1200/format/webp)
+<img src="https:////upload-images.jianshu.io/upload_images/2438937-520282f1ab817cc0.png?imageMogr2/auto-orient/strip|imageView2/2/w/1200/format/webp" alt="img" style="zoom:50%;" />
 
 **具体的通信过程是这样的：**
 
 1. Server向ServiceManager注册
 
-   Server通过Binder驱动向ServiceManager注册，声明可以对外提供服务。ServiceManager中会保留一份映射表：名字为zhangsan的Server对应的Binder引用是0x12345。
+   Server通过 `BinderDriver` 向[`ServiceManager`](https://cs.android.com/android/platform/superproject/+/master:frameworks/native/cmds/servicemanager/ServiceManager.h;l=19?q=servicemanager&sq=) 注册，声明可以对外提供服务。ServiceManager中会保留一份映射表：名字为zhangsan的Server对应的Binder引用是0x12345。
 
 2. Client向ServiceManager请求Server的Binder引用
 
-   Client想要请求Server的数据时，需要先通过Binder驱动向ServiceManager请求Server的Binder引用：我要向名字为zhangsan的Server通信，请告诉我Server的Binder引用。
+   Client想要请求Server的数据时，需要先通过`BinderDriver`向`ServiceManager`请求Server的Binder引用：我要向名字为zhangsan的Server通信，请告诉我Server的Binder引用。
 
 3. 向具体的Server发送请求
 
@@ -162,7 +160,7 @@ Binder是基于C/S架构的，对于通信双方来说，发起请求的进程�
 
 可以看到，Client、Server、ServiceManager之间的通信都是通过Binder驱动作为桥梁的，可见Binder驱动的重要性。也许你还有一点疑问，ServiceManager和Binder驱动属于两个不同的进程，它们是为Client和Server之间的进程间通信服务的，也就是说Client和Server之间的进程间通信依赖ServiceManager和Binder驱动之间的进程间通信，这就像是：“蛋生鸡，鸡生蛋，但第一个蛋得通过一只鸡孵出来”。Binder机制是如何创造第一只下蛋的鸡呢？
 
-1. 当Android系统启动后，会创建一个名称为 `servicemanager` 的进程，这个进程通过一个约定的命令 `BINDER SET CONTEXT_MGR` 向Binder驱动注册，申请成为为ServiceManager，Binder驱动会自动为ServiceManager创建一个Binder实体（**第一只下蛋的鸡**）；
+1. 当Android系统启动后，会创建一个名称为 [`ServiceManager`](https://cs.android.com/android/platform/superproject/+/master:frameworks/native/cmds/servicemanager/ServiceManager.h;l=19?q=servicemanager&sq=) 的进程，这个进程通过一个约定的命令 `BINDER SET CONTEXT_MGR` 向Binder驱动注册，申请成为为ServiceManager，`BinderDriver`会自动为`ServiceManager`创建一个Binder实体（**第一只下蛋的鸡**）
 2. 并且这个Binder实体的引用在所有的Client中都为0，也就说各个Client通过这个0号引用就可以和ServiceManager进行通信。Server通过0号引用向ServiceManager进行注册，Client通过0号引用就可以获取到要通信的Server的Binder引用。
 
 [Android Binder设计与实现 - 设计篇](https://blog.csdn.net/universus/article/details/6211589)中对Client、Server、Binder驱动和ServiceManager有更详细的介绍。
@@ -171,11 +169,11 @@ Binder是基于C/S架构的，对于通信双方来说，发起请求的进程�
 
 通过上面的分析，我们已经知道了Binder的基本通信过程：
 
->  Client向SerivceManger获取到Server的Binder引用，Client通过Binder引用向Server发起具体请求。
+>  Client通过SerivceManger获取到Server的Binder引用，Client通过Binder引用向Server发起具体请求。
 
 Client通过这个Binder引用具体是如何调用Server方法的呢？
 
-![binder_proxy.png](https:////upload-images.jianshu.io/upload_images/2438937-73e86a8c9b31e6a6.png?imageMogr2/auto-orient/strip|imageView2/2/w/1200/format/webp)
+<img src="https:////upload-images.jianshu.io/upload_images/2438937-73e86a8c9b31e6a6.png?imageMogr2/auto-orient/strip|imageView2/2/w/1200/format/webp" alt="binder_proxy.png" style="zoom: 67%;" />
 
 
 
@@ -183,7 +181,7 @@ Client通过这个Binder引用具体是如何调用Server方法的呢？
 
 实际上Client拿到的Object并不是Server真正的Binder实体，Binder驱动做了一层**对象转换**，将这个Object包装成了一个代理对象ProxyObject，这个ProxyObject和真正的Binder实体有相同的方法签名，Client通过这个ProxyObject请求add方法时，Binder驱动会自动将请求转发到具体的Binder实体中执行，这就是**Binder的代理机制**。由于ProxyObject和真正的Binder实体有相同的方法签名，其实Client并不需要关心是ProxyObject还是真实的Object。
 
-为了方便描述，下面将Server真正的Binder实体称为**Binder本地对象**；将Client中的Binder引用，即ProxyObject，称之为**Binder代理对象**。
+为了方便描述，下面将Server真正的Binder实体称为**Binder本地对象**；将Client中的Binder引用即ProxyObject，称之为**Binder代理对象**。
 
 ## 2.4 对Binder概念的重新理解
 
@@ -197,7 +195,7 @@ Client通过这个Binder引用具体是如何调用Server方法的呢？
 
 - **对于Server**
 
-  Binder是提供具体实现的本地对象，需向ServiceManager注册；
+  Binder是提供具体实现的本地对象，需向ServiceManager注册(`ServiceManager.h # addService()`)
 
 - **对于Binder驱动**
 
@@ -251,8 +249,6 @@ Binder驱动中保留了Binder代理对象和Binder本地对象的具体结构�
 ### 3.1.2 AIDL实例
 
 首先定义一个aidl文件，这个接口中声明了一个getPid方法：
-
-
 
 ```java
 // IRemoteService.aidl
@@ -389,8 +385,6 @@ asInterface方法中既可能返回Stub本身的IRemoteService对象，也可能
 1. Client和Server在同一个进程，obj是Binder本地对象（Stub的子类），asInterface方法返回的就是Binder本地对象；
 2. Client和Server在不同的进程，obj实际上是Binder代理对象，asInterface返回一个Proxy对象。
 
-
-
 ```java
 //Binder.java
 /**
@@ -438,8 +432,6 @@ obj.queryLocalInterface是怎样去查找是否有本地的IInterface呢，从Bi
 
    Client中拿到的IRemoteService引用实际上是Proxy，调用getPid方法实际上是调用Proxy的getPid方法，这个方法只是将参数序列化后，调用了mRemote成员的transact方法。Stub类中为IRemoteService中的每个方法定义了方法编号，transact方法中传入getPid方法的编号。**此时Client调用方线程挂起，等待Server响应数据。**
 
-
-
 ```java
 // Stub.Proxy
 public int getPid(java.lang.String name) throws android.os.RemoteException {
@@ -461,8 +453,6 @@ public int getPid(java.lang.String name) throws android.os.RemoteException {
 2. Binder驱动将请求派发给Server
 
    Binder驱动经过一系列的处理后，将请求派发给了Server，即调用Server本地Binder对象(Stub)的onTransact方法最终在此方法中完成getPid方法的具体调用。在onTransact方法中，根据Proxy中调用transact时传入的方法编号来区别具体要处理的方法。
-
-
 
 ```java
 // Stub
@@ -493,8 +483,6 @@ public boolean onTransact(int code, android.os.Parcel data, android.os.Parcel re
 通过前面的示例我们已经知道，aidl文件只是用来定义C/S交互的接口，Android在编译时会自动生成相应的Java类，生成的类中包含了Stub和Proxy静态内部类，用来封装数据转换的过程，实际使用时只关心具体的Java接口类即可。为什么Stub和Proxy是静态内部类呢？这其实只是为了将三个类放在一个文件中，提高代码的聚合性。通过上面的分析，我们其实完全可以不通过aidl，手动编码来实现Binder的通信，下面我们通过编码来实现ActivityManagerService。
 
 首先定义IActivityManager接口：
-
-
 
 ```java
 public interface IActivityManager extends IInterface {
@@ -603,8 +591,6 @@ public class ActivityManagerService extends ActivityManagerNative {
 简化版的ActivityManagerService到这里就已经实现了，剩下就是Client需要获取到AMS的代理对象IActivityManager就可以通信了。实际开发过程中通过aidl文件能够自动编译出中间代码，并不需要我们手动去实现，不过手动编码能够加深对Binder机制的理解。在开发过程中我们也并不会直接使用到AMS，但了解AMS实现原理对熟悉Framework来说必不可少，关于AMS具体实现原理，我会在后续的文章中分析。
 
 > 至此，Binder机制的基本通信过程就介绍完了，由于Binder机制太过复杂，本人水平有限，文中难免出现错误或不足之处，欢迎大家指正。
-
-
 
 # 参考资料
 
