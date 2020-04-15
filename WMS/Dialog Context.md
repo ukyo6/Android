@@ -18,7 +18,7 @@ Caused by: android.view.WindowManager$BadTokenException: Unable to add window --
 
 **WindowManager**：用来在应用与window之间的管理接口，管理窗口顺序，消息等。 实现类`WindowManagerImpl` --> 调用单例的`WindowManagerGlobal`
 
-**WindowManagerService**：简称Wms，WindowManagerService管理窗口的创建、更新和删除，显示顺序等，是WindowManager这个管理接品的真正的实现类。它运行在`System_server`进程，作为服务端，客户端（应用程序）通过IPC调用和它进行交互。(和`ViewRootImpl` 通过 `Seesion` 通信)
+**WindowManagerService**：简称Wms，WindowManagerService管理窗口的创建、更新和删除，显示顺序等，是WindowManager这个管理接品的真正的实现类。它运行在`System_server`进程，作为服务端，客户端（应用程序）通过IPC调用和它进行交互。(和`ViewRootImpl` 通过 `Session` 通信)
 
 **Token**：这里提到的Token主是指窗口令牌（WindowToken），是一种特殊的Binder令牌，Wms用它唯一标识系统中的一个窗口。
 
@@ -90,7 +90,11 @@ mWindow是PhoneWindow类型，mWindow.getAttributes()默认获取到的Type为`T
 
 Dialog最终也是通过系统的WindowManager把自己的Window添加到WMS上。在addView前，Dialog的token是null（上面提到过的w.setWindowManager第二参数为空）。
 
-Dialog初化始时是通过 Context.getSystemServer 来获取 WindowManager，而如果用Application或者Service的Context去获取这个WindowManager服务的话，会得到一个WindowManagerImpl的实例，这个实例里token也是空的。之后在Dialog的show方法中将Dialog的View(PhoneWindow.getDecorView())添加到WindowManager时会给token设置默认值还是null。**如果这个Context是Activity，则直接返回Activity的mWindowManager，这个mWindowManager在Activity的attach方法被创建**，Token指向此Activity的Token，mParentWindow为Activity的Window本身。
+Dialog初化始时是通过 Context.getSystemServer 来获取 WindowManager:
+
+- **如果用Application或者Service的Context去获取这个WindowManager服务的话**，会得到一个WindowManagerImpl的实例，这个实例里token也是空的。之后在Dialog的show方法中将Dialog的View(PhoneWindow.getDecorView())添加到WindowManager时会给token设置默认值还是null。
+
+- **如果这个Context是Activity，则直接返回Activity的mWindowManager，这个mWindowManager在Activity的attach方法被创建**，Token指向此Activity的Token，mParentWindow为Activity的Window本身。
 
 查看`Activity.getSystemService()`方法：
 

@@ -228,7 +228,7 @@ private int maxRequestsPerHost = 5; //同一个host最大同时请求数5
 // 正在准备中的异步请求队列
 private final Deque<AsyncCall> readyAsyncCalls = new ArrayDeque<>();
 
-// 运行中的异步请求队列
+// 运行中的异步请求队列 不超过64
 private final Deque<AsyncCall> runningAsyncCalls = new ArrayDeque<>();
 
 // 同步请求队列
@@ -322,16 +322,16 @@ final class AsyncCall extends NamedRunnable {
         Response response = getResponseWithInterceptorChain();
         if (retryAndFollowUpInterceptor.isCanceled()) {
           signalledCallback = true;
-          responseCallback.onFailure(RealCall.this, new   IOException("Canceled"));
+          responseCallback.onFailure(RealCall.this, new IOException("Canceled"));
         } else {
           signalledCallback = true;
-          responseCallback.onResponse(RealCall.this,   response);
+          responseCallback.onResponse(RealCall.this, response);
         }
       } catch (IOException e) {
         e = timeoutExit(e);
         if (signalledCallback) {
           // Do not signal the callback twice!
-          Platform.get().log(INFO, "Callback failure   for " + toLoggableString(), e);
+          Platform.get().log(INFO, "Callback failure for " + toLoggableString(), e);
         } else {
           eventListener.callFailed(RealCall.this, e);
           responseCallback.onFailure(RealCall.this, e);
@@ -456,7 +456,8 @@ final class AsyncCall extends NamedRunnable {
 ### 三、ConnectInterceptor之连接池
 
 ```java
-@Override public Response intercept(Chain chain) throws IOException {
+@Override 
+public Response intercept(Chain chain) throws IOException {
     RealInterceptorChain realChain = (RealInterceptorChain) chain;
     Request request = realChain.request();
     StreamAllocation streamAllocation = realChain.streamAllocation();
@@ -706,4 +707,4 @@ long cleanup(long now) {
 
 ### 四、总结
 
-经过上面对OKHttp内部工作机制的一系列分析，我相信你已经对OKHttp已经有了一个比较深入的了解了。首先，我们会在请求的时候初始化一个Call的实例，然后执行它的execute()方法或enqueue()方法，内部最后都会执行到getResponseWithInterceptorChain()方法，这个方法里面通过拦截器组成的责任链，依次经过用户自定义普通拦截器、重试拦截器、桥接拦截器、缓存拦截器、连接拦截器和用户自定义网络拦截器以及访问服务器拦截器等拦截处理过程，来获取到一个响应并交给用户。其中，除了OKHttp的内部请求流程这点之外，缓存和连接这两部分内容也是两个很重要的点，相信经过本文的讲解，读者对着三部分重点内容已经有了自己的理解。后面，将会为大家带来OKHttp的封装框架Retrofit源码的深入分析，敬请期待~
+经过上面对OKHttp内部工作机制的一系列分析，我相信你已经对OKHttp已经有了一个比较深入的了解了。首先，我们会在请求的时候初始化一个Call的实例，然后执行它的execute()方法或enqueue()方法，内部最后都会执行到getResponseWithInterceptorChain()方法，这个方法里面通过拦截器组成的责任链，依次经过用户自定义普通拦截器、重试拦截器、桥接拦截器、缓存拦截器、连接池拦截器和用户自定义网络拦截器以及访问服务器拦截器等拦截处理过程，来获取到一个响应并交给用户。其中，除了OKHttp的内部请求流程这点之外，缓存和连接这两部分内容也是两个很重要的点，相信经过本文的讲解，读者对着三部分重点内容已经有了自己的理解。后面，将会为大家带来OKHttp的封装框架Retrofit源码的深入分析，敬请期待~

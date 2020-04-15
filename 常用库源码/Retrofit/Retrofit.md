@@ -71,7 +71,7 @@ public static final class Builder {
     private final List<CallAdapter.Factory> callAdapterFactories = new ArrayList<>();
     // 回调方法执行器，在 Android 上默认是封装了 handler 的 MainThreadExecutor, 默认作用是：切换线程（子线程 -> 主线程）
     private @Nullable Executor callbackExecutor;
-    // 一个开关，为true则会缓存创建的ServiceMethod
+    // 一个开关，为true则会提前解析所有的方法注解
     private boolean validateEagerly;
 }
 ```
@@ -134,12 +134,12 @@ static class Android extends Platform {
         return new MainThreadExecutor();
     }
 
-    // 创建默认的网络请求适配器工厂，如果是Android7.0或Java8上，则使
-    // 用了并发包中的CompletableFuture保证了回调的同步
+    // 创建默认的网络请求适配器工厂，如果是Android7.0或Java8上，则使用了并发包中的CompletableFuture保证了回调的同步
+
     // 在Retrofit中提供了四种CallAdapterFactory(策略模式)：
-    // ExecutorCallAdapterFactory（默认）、GuavaCallAdapterFactory、
-    // va8CallAdapterFactory、RxJavaCallAdapterFactory
-    @Override List<? extends CallAdapter.Factory> defaultCallAdapterFactories(
+    // ExecutorCallAdapterFactory（默认）、GuavaCallAdapterFactory、 va8CallAdapterFactory、RxJavaCallAdapterFactory
+    @Override 
+    List<? extends CallAdapter.Factory> defaultCallAdapterFactories(
         @Nullable Executor callbackExecutor) {
       if (callbackExecutor == null) throw new AssertionError();
       ExecutorCallAdapterFactory executorFactory = new ExecutorCallAdapterFactory(callbackExecutor);
@@ -172,7 +172,7 @@ static class Android extends Platform {
 }
 ```
 
-可以看到，在Builder内部构造时设置了默认Platform、callAdapterFactories和callbackExecutor。
+可以看到，在Builder内部构造时设置了默认Platform、callAdapterFactories 和 callbackExecutor。
 
 #### 3、添加baseUrl
 
@@ -202,7 +202,7 @@ public Builder baseUrl(HttpUrl baseUrl) {
 
 #### 4、添加GsonConverterFactory
 
-首先，看到GsonConverterFactory.creat()的源码。
+首先，看到GsonConverterFactory.create()的源码。
 
 ```java
 public final class GsonConverterFactory extends Converter.Factory {
@@ -397,8 +397,7 @@ Builder(Retrofit retrofit, Method method) {
 static <ResponseT, ReturnT> HttpServiceMethod<ResponseT, ReturnT> parseAnnotations(
       Retrofit retrofit, Method method, RequestFactory requestFactory) {
 
-    //1.根据网络请求接口方法的返回值和注解类型，
-    // 从Retrofit对象中获取对应的网络请求适配器
+    //1.根据网络请求接口方法的返回值和注解类型，从Retrofit对象中获取对应的网络请求适配器
     CallAdapter<ResponseT, ReturnT> callAdapter = createCallAdapter(retrofit,method);
 
     // 得到响应类型
@@ -506,8 +505,7 @@ for (int i = start, count = converterFactories.size(); i < count; i++) {
 1、Call<List<Repo>> repos = service.listRepos("octocat");
 ```
 
-service对象是动态代理对象Proxy.newProxyInstance()，当调用getCall()时会被
-它拦截，然后调用自身的InvocationHandler#invoke()，得到最终的Call对象。
+service对象是动态代理对象Proxy.newProxyInstance()，当调用getCall()时会被它拦截，然后调用自身的InvocationHandler#invoke()，得到最终的Call对象。
 
 #### 2、同步执行流程 repos.execute()
 

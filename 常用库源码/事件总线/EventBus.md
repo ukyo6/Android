@@ -120,7 +120,7 @@ private static final EventBusBuilder DEFAULT_BUILDER = new EventBusBuilder();
 
 ```java
 EventBus.builder()
-        .eventInheritance(false)
+        .eventInheritance(false)  
         .logSubscriberExceptions(false) //打印错误日志
         .build()
         .register(this);
@@ -211,7 +211,7 @@ private void findUsingReflectionInSingleClass(FindState findState) {
         Method[] methods;
         try {
             // This is faster than getMethods, especially when subscribers are fat classes like Activities
-            // getDeclaredMethods: 类所有自己的方法, 不包含继承的方法, 查找效率比 getMethods() 高
+            // getDeclaredMethods: 类所有自己的方法(包括私有), 不包含继承的方法, 查找效率比 getMethods() 高
             // getMethods: 类和父类的所有公共方法
             methods = findState.clazz.getDeclaredMethods();
         } catch (Throwable th) {
@@ -275,12 +275,12 @@ private void subscribe(Object subscriber, SubscriberMethod subscriberMethod) {  
         Subscription newSubscription = new Subscription(subscriber, subscriberMethod);
         //1.查找指定EventType的订阅者列表
         CopyOnWriteArrayList<Subscription> subscriptions = subscriptionsByEventType.get(eventType);
-        //不存在就创建
+        
         if (subscriptions == null) {
             subscriptions = new CopyOnWriteArrayList<>();
-            subscriptionsByEventType.put(eventType, subscriptions);
+            subscriptionsByEventType.put(eventType, subscriptions); //更新EventType对应的订阅者列表
         } else {
-            if (subscriptions.contains(newSubscription)) {  
+            if (subscriptions.contains(newSubscription)) {  //不能重复订阅
                 throw new EventBusException("Subscriber " + subscriber.getClass() + " already registered to event "
                         + eventType);
             }
@@ -492,7 +492,7 @@ private boolean postSingleEventForEventType(Object event, PostingThreadState pos
 
 ### 五、处理事件
 
-接着上边的继续分析，`postToSubscription()`内部会根据订阅事件方法的线程模式，间接或直接的以发送的事件为参数，通过反射执行订阅事件的方法。
+接着上边的继续分析，`postToSubscription()`内部会根据订阅事件方法的线程模式，间接或直接的以发送的事件为参数，**通过反射**执行订阅事件的方法。
 
 ```java
 private void postToSubscription(Subscription subscription, Object event, boolean isMainThread) {
@@ -632,7 +632,7 @@ EventBus.getDefault().postSticky("Hello World!");
 ```java
 public void postSticky(Object event) {
         synchronized (stickyEvents) {
-            stickyEvents.put(event.getClass(), event); //key是event.class, value是event
+            stickyEvents.put(event.getClass(), event);
         }
         post(event);
 }

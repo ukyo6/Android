@@ -77,7 +77,7 @@ public void addView(View view, ViewGroup.LayoutParams params, Display display, W
         mParams.add(wparams);
     }
     try {
-        // ViewR
+        // ViewRootImpl. setView (decorView)
         root.setView(view, wparams, panelParentView);
     } catch (RuntimeException e) {
         synchronized (mLock) {
@@ -230,32 +230,25 @@ private static int getRootMeaureSpec(int windowSize, int rootDimension) {
 
 ```java
 // ViewGroup的measureChildWithMargins方法
-protected void measureChildWithMargins(View child,
-int parentWidthMeasureSpec, int widthUsed,
-int parentHeightMeasureSpec, int heightUsed) {
+protected void measureChildWithMargins(View child,int parentWidthMeasureSpec, int widthUsed,
+                                       int parentHeightMeasureSpec, int heightUsed) {
     final MarginLayoutParams lp = (MarginLayoutParams) child.getLayoutParams();
 
-    // 子元素的MeasureSpec的创建与父容器的MeasureSpec和子元素本身
-    // 的LayoutParams有关，此外还和View的margin及父容器的padding有关
-    final int childWidthMeasureSpec = getChildMeasureSpec(
-    parentWidthMeasureSpec,
-    mPaddingLeft + mPaddingRight + lp.leftMargin + lp.rightMargin + widthUsed, 
-    lp.width);
+    // 子元素的MeasureSpec的创建与父容器的MeasureSpec和子元素本身的LayoutParams有关，此外还和View的margin及父容器的padding有关
+    final int childWidthMeasureSpec = getChildMeasureSpec(parentWidthMeasureSpec,
+    mPaddingLeft + mPaddingRight + lp.leftMargin + lp.rightMargin + widthUsed, lp.width);
 
-    final int childHeightMeasureSpec = getChildMeasureSpec(
-    parentHeightMeasureSpec,
-    mPaddingTop + mPaddingBottom + lp.topMargin + lp.bottomMargin + heightUsed, 
-    lp.height);
+    final int childHeightMeasureSpec = getChildMeasureSpec(parentHeightMeasureSpec,
+    mPaddingTop + mPaddingBottom + lp.topMargin + lp.bottomMargin + heightUsed, lp.height);
 
-    child..measure(childWidthMeasureSpec, childHeightMeasureSpec);
+    child.measure(childWidthMeasureSpec, childHeightMeasureSpec);
 }
 
 public static int getChildMeasureSpec(int spec, int padding, int childDimesion) {
     int specMode = MeasureSpec.getMode(spec);
     int specSize = MeasureSpec.getSize(spec);
 
-    // padding是指父容器中已占用的空间大小，因此子元素可用的
-    // 大小为父容器的尺寸减去padding
+    // padding是指父容器中已占用的空间大小，因此子元素可用的大小为父容器的尺寸减去padding
     int size = Math.max(0, specSize - padding);
 
     int resultSize = 0;
@@ -431,8 +424,7 @@ public int getMinimumWidth() {
 直接继承View的控件需要重写onMeasure方法并设置wrap_content时的自身大小，否则在布局中使用wrap_content就相当于使用match_parent。解决方式如下：
 
 ```java
-protected void onMeasure(int widthMeasureSpec, 
-int height MeasureSpec) {
+protected void onMeasure(int widthMeasureSpec, int height MeasureSpec) {
     super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     int widthSpecMode = MeasureSpec.getMode(widthMeasureSpec);
     int widtuhSpecSize = MeasureSpec.getSize(widthMeasureSpec);
@@ -545,8 +537,7 @@ public void onWindowFocusChanged(boolean hasFocus) {
 - view.post(runnable)
 
 ```Java
-// 通过post可以将一个runnable投递到消息队列的尾部，// 然后等待Looper调用次runnable的时候，View也已经初
-// 始化好了
+// 通过post可以将一个runnable投递到消息队列的尾部，// 然后等待Looper调用次runnable的时候，View也已经初始化好了
 protected void onStart() {
     super.onStart();
     view.post(new Runnable() {
@@ -563,7 +554,7 @@ protected void onStart() {
 - ViewTreeObserver
 
 ```java
-// 当View树的状态发生改变或者View树内部的View的可见// 性发生改变时，onGlobalLayout方法将被回调
+// 当View树的状态发生改变或者View树内部的View的可见性发生改变时，onGlobalLayout方法将被回调
 protected void onStart() {
     super.onStart();
 
@@ -660,7 +651,7 @@ private void setChildFrame(View child, int left, int top, int width, int height)
 }
 ```
 
-注意：在View的默认实现中，View的测量宽/高和最终宽/高是相等的，只不过测量宽/高形成于View的measure过程，而最终宽/高形成于View的layout过程，即两者的赋值时机不同，测量宽/高的赋值时机稍微早一些。在一些特殊的情况下则两者不相等：
+注意：在View的默认实现中，View的`measuredWidth(height)`和`width(height)`是相等的，只不过测量宽/高形成于View的measure过程，而最终宽/高形成于View的layout过程，即两者的赋值时机不同，测量宽/高的赋值时机稍微早一些。在一些特殊的情况下则两者不相等：
 
 - 重写View的layout方法,使最终宽度总是比测量宽/高大100px
 
@@ -685,21 +676,19 @@ private void performDraw() {
 
 private void draw(boolean fullRedrawNeeded) {
     ...
-    if (!drawSoftware(surface, mAttachInfo, xOffest, yOffset, 
-    scalingRequired, dirty)) {
+    if (!drawSoftware(surface, mAttachInfo, xOffest, yOffset, scalingRequired, dirty)) {
         return;
     }
     ...
 }
 
-private boolean drawSoftware(Surface surface, AttachInfo attachInfo, 
-int xoff, int yoff, boolean scallingRequired, Rect dirty) {
+private boolean drawSoftware(Surface surface, AttachInfo attachInfo, int xoff, int yoff, boolean scallingRequired, Rect dirty) {
     ...
     mView.draw(canvas);
     ...
 }
 
-// 绘制基本上可以分为六个步骤
+// View.draw() 绘制基本上可以分为六个步骤
 public void draw(Canvas canvas) {
     ...
     // 步骤一：绘制View的背景
