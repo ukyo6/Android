@@ -2,7 +2,7 @@ LeakCanary是使用成本较低的HeapProfiler, 通常内存泄漏都比较隐�
 # 原理
 LeakCanary的原理很简单: 在Activity或Fragment被销毁后, 将他们的引用包装成一个`WeakReference`, 然后将这个`WeakReference`关联到一个`ReferenceQueue`.查看`ReferenceQueue`中是否含有Activity或Fragment的引用, 如果没有触发GC,再次查看,还是没有的话就说明没有回收成功, 可能发生了泄露. 这时候开始dump内存的信息,并分析泄露的引用链.
 
-#使用
+# 使用
 LeakCanary现在已经有2.0的canary版本.实现和上个版本1.6相比也有不同.
 2.0以前
 

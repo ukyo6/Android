@@ -621,7 +621,7 @@ public ScheduledRunnable scheduleActual(final Runnable run, long delayTime, @Non
 }
 ```
 
-在NewThreadWorker的scheduleActual()方法的内部，在注释1处首先会新建一个ScheduledRunnable对象，将Runnable对象和parent包装起来了，**这里parent是一个DisposableContainer对象，它实际的实现类是CompositeDisposable类，即一个保存所有事件流是否被切断状态的容器，它内部的实现是使用了RxJava自己定义的一个简单的OpenHashSet类ji进行存储**。最后注释2处，判断是否设置了延迟时间，如果设置了，则调用线程池的submit()方法立即进行线程切换，否则，调用schedule()方法进行延时执行线程切换。
+在NewThreadWorker的scheduleActual()方法的内部，在注释1处首先会新建一个ScheduledRunnable对象，将Runnable对象和parent包装起来了，**这里parent是一个DisposableContainer对象，它实际的实现类是CompositeDisposable类，即一个保存所有事件流是否被切断状态的容器，它内部的实现是使用了RxJava自己定义的一个简单的OpenHashSet类进行存储**。最后注释2处，判断是否设置了延迟时间，如果设置了，则调用线程池的submit()方法立即进行线程切换，否则，调用schedule()方法进行延时执行线程切换。
 
 #### 7、为什么多次执行subscribeOn()，只有第一次有效？
 
